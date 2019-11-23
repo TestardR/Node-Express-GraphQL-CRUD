@@ -1,31 +1,47 @@
 const graphql = require("graphql");
-const { GraphQLObjectType, GraphQLString, GraphQLInt, GraphQLSchema } = graphql;
+const {
+  GraphQLObjectType,
+  GraphQLString,
+  GraphQLInt,
+  GraphQLSchema,
+  GraphQLList
+} = graphql;
 const _ = require("lodash");
 const axios = require("axios");
-const url = "http://localhost:3000/";
+const url = "http://localhost:3000";
 
 const CompanyType = new GraphQLObjectType({
   name: "Company",
-  fields: {
+  fields: () => ({
     id: { type: GraphQLString },
     name: { type: GraphQLString },
-    description: { type: GraphQLString }
-  }
+    description: { type: GraphQLString },
+    users: {
+      type: GraphQLList(UserType),
+      resolve(parentValue, args) {
+        return axios
+          .get(`${url}/companies/${parentValue.id}/users`)
+          .then(res => res.data);
+      }
+    }
+  })
 });
 
 const UserType = new GraphQLObjectType({
   name: "User",
-  fields: {
+  fields: () => ({
     id: { type: GraphQLString },
     firstName: { type: GraphQLString },
     age: { type: GraphQLInt },
     company: {
-        type: CompanyType,
-        resolve(parentValue, args) {
-           return axios.get(`${url}companies/${parentValue.companyId}`).then(res => res.data)
-        }
+      type: CompanyType,
+      resolve(parentValue, args) {
+        return axios
+          .get(`${url}/companies/${parentValue.companyId}`)
+          .then(res => res.data);
+      }
     }
-  }
+  })
 });
 
 const RootQuery = new GraphQLObjectType({
@@ -35,7 +51,14 @@ const RootQuery = new GraphQLObjectType({
       type: UserType,
       args: { id: { type: GraphQLString } },
       resolve(parentValue, args) {
-        return axios.get(`${url}users/${args.id}`).then(res => res.data);
+        return axios.get(`${url}/users/${args.id}`).then(res => res.data);
+      }
+    },
+    company: {
+      type: CompanyType,
+      args: { id: { type: GraphQLString } },
+      resolve(parentValue, args) {
+        return axios.get(`${url}/companies/${args.id}`).then(res => res.data);
       }
     }
   }
